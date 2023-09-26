@@ -112,5 +112,22 @@ public class EmployeeData {
 		this.arriveDate = arriveDate;
 	}
 	
+	@Override
+	public String toString() {
+	    return "EmployeeData{" +
+	           "id=" + employeeID +
+	           ", fullname='" + fullName + '\'' +
+	           ", username='" + userName + '\'' +
+	           ", email='" + email + '\'' +
+	           ", phone_number='" + phoneNumber + '\'' +
+	           ", password_hash='" + password + '\'' +
+	           ", gender='" + gender + '\'' +
+	           ", user_image='" + employeeImage + '\'' +
+	           ", address='" + address + '\'' +
+	           ", arrive_date=" + arriveDate +
+	           '}';
+	}
+	
+	
 	
 }

@@ -11,7 +11,9 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.ResourceBundle;
 
@@ -21,6 +23,10 @@ import data.CategoryData;
 import data.CustomerData;
 import data.EmployeeData;
 import database.DbConnection;
+import javafx.beans.binding.Bindings;
+import javafx.beans.binding.IntegerBinding;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
 import javafx.collections.transformation.FilteredList;
@@ -29,6 +35,7 @@ import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
+import javafx.scene.Node;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Alert;
@@ -40,6 +47,8 @@ import javafx.scene.control.DatePicker;
 import javafx.scene.control.Label;
 import javafx.scene.control.PasswordField;
 import javafx.scene.control.Spinner;
+import javafx.scene.control.Tab;
+import javafx.scene.control.TabPane;
 import javafx.scene.control.TableColumn;
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -318,10 +327,16 @@ public class AdminController implements Initializable {
 	private AnchorPane area_form;
 
 	@FXML
+	private TabPane categoryTabPane;
+
+	@FXML
 	private Button category_btn;
 
 	@FXML
 	private AnchorPane category_form;
+
+	@FXML
+	private Button changepass;
 
 	@FXML
 	private Button customers_btn;
@@ -334,6 +349,21 @@ public class AdminController implements Initializable {
 
 	@FXML
 	private Button logout;
+
+	@FXML
+	private Button minus_quantityBtn;
+
+	@FXML
+	private Button plus_quantityBtn;
+
+	@FXML
+	private ImageView posDetailBookImage;
+
+	@FXML
+	private TextField posDetailBookName;
+
+	@FXML
+	private TextField posQuantity;
 
 	@FXML
 	private Button pos_btn;
@@ -1059,7 +1089,14 @@ public class AdminController implements Initializable {
 			addEmployee_phone.setText(String.valueOf(employeeData.getPhoneNumber()));
 			addEmployee_email.setText(String.valueOf(employeeData.getEmail()));
 			addEmployee_gender.setPromptText(employeeData.getGender());
-			addEmployee_arriveDate.setPromptText(employeeData.getArriveDate().toString());
+
+			Date arriveDate = employeeData.getArriveDate();
+			if (arriveDate != null) {
+				addEmployee_arriveDate.setPromptText(arriveDate.toString());
+			} else {
+				addEmployee_arriveDate.setPromptText("");
+			}
+
 			addEmployee_address.setText(String.valueOf(employeeData.getAddress()));
 
 			String uri = "file:" + employeeData.getEmployeeImage();
@@ -1862,6 +1899,194 @@ public class AdminController implements Initializable {
 	}
 
 //-------------------------------------------------------------------------------------------------------
+	// CHANGE PASSWORD
+	@FXML
+	private void ChangePass(ActionEvent event) throws IOException {
+		Alert alert;
+		alert = new Alert(AlertType.CONFIRMATION);
+		alert.setTitle("Confirmation Message");
+		alert.setHeaderText(null);
+		alert.setContentText("Are you sure you want to change password?");
+		Optional<ButtonType> option = alert.showAndWait();
+
+		if (option.get() == ButtonType.OK) {
+			Scene scene = logout.getScene();
+			Stage stage = (Stage) scene.getWindow();
+			stage.close();
+
+			Parent root = FXMLLoader.load(getClass().getResource("/views/ChangePasswordView.fxml"));
+
+			Scene newScene = new Scene(root);
+
+			stage.setScene(newScene);
+			stage.setTitle("Library Management");
+			stage.show();
+		}
+	}
+
+//-------------------------------------------------------------------------------------------------------
+	// POS
+	public Map<String, List<BookData>> getCategoryData() {
+		Map<String, List<BookData>> categoryDataMap = new HashMap<>();
+		String sql = "SELECT category.category_name, books.book_name, books.quantity, books.author_name, books.publication_year, books.book_image, books.category_id, books.area_id, category.category_name AS category_name, area.area_name AS area_name "
+				+ "FROM category " + "INNER JOIN books ON category.id = books.category_id "
+				+ "INNER JOIN area ON books.area_id = area.id"; // Bổ sung INNER JOIN để lấy area_name
+
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		connect = dbc.getConnection();
+
+		try {
+			prepare = connect.prepareStatement(sql);
+			result = prepare.executeQuery();
+
+			while (result.next()) {
+				String categoryName = result.getString("category_name");
+				String bookName = result.getString("book_name");
+				int quantity = result.getInt("quantity");
+				String authorName = result.getString("author_name");
+				String publicationYear = result.getString("publication_year");
+				String bookImage = result.getString("book_image");
+				int categoryId = result.getInt("category_id");
+				int areaId = result.getInt("area_id");
+				String areaName = result.getString("area_name");
+
+				// Kiểm tra xem danh mục đã tồn tại trong Map chưa
+				if (!categoryDataMap.containsKey(categoryName)) {
+					categoryDataMap.put(categoryName, new ArrayList<>());
+				}
+
+				// Thêm sách vào danh sách sách của danh mục
+				categoryDataMap.get(categoryName).add(new BookData(bookName, authorName, publicationYear, quantity,
+						bookImage, categoryId, areaId, categoryName, areaName));
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+
+		return categoryDataMap;
+	}
+
+	public void populateCategoryTabs() {
+		Map<String, List<BookData>> categoryDataMap = getCategoryData();
+
+		for (Map.Entry<String, List<BookData>> entry : categoryDataMap.entrySet()) {
+			String categoryName = entry.getKey();
+			List<BookData> books = entry.getValue();
+
+			Tab categoryTab = new Tab(categoryName);
+
+			// Tạo nội dung cho mỗi tab ở đây.
+			// Sử dụng TableView hoặc các điều khiển khác để hiển thị dữ liệu danh mục và
+			// sách trong danh mục.
+
+			// Ở đây, bạn có thể sử dụng TableView để hiển thị danh sách sách (books) trong
+			// danh mục.
+			TableView<BookData> bookTableView = createBookTableView(books);
+
+			categoryTab.setContent(bookTableView);
+
+			categoryTabPane.getTabs().add(categoryTab);
+		}
+	}
+
+	public TableView<BookData> createBookTableView(List<BookData> books) {
+		TableView<BookData> tableView = new TableView<>();
+		TableColumn<BookData, String> nameColumn = new TableColumn<>("Book Name");
+		TableColumn<BookData, Integer> quantityColumn = new TableColumn<>("Quantity");
+
+		// Đặt chiều rộng cho cột Book Name
+		nameColumn.setPrefWidth(213); // 200 là giá trị chiều rộng mong muốn
+
+		// Đặt chiều rộng cho cột Quantity
+		quantityColumn.setPrefWidth(70);
+
+		// Đặt giá trị cho cột Book Name từ dữ liệu sách
+		nameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(cellData.getValue().getBookName()));
+
+		// Đặt giá trị cho cột Quantity từ dữ liệu sách
+		quantityColumn.setCellValueFactory(cellData -> {
+			IntegerBinding integerBinding = Bindings.createIntegerBinding(() -> cellData.getValue().getQuantity());
+			return integerBinding.asObject();
+		});
+
+		// Thêm cột vào TableView
+		tableView.getColumns().addAll(nameColumn, quantityColumn);
+
+		// Đặt dữ liệu sách vào TableView
+		tableView.setItems(FXCollections.observableArrayList(books));
+
+		return tableView;
+	}
+
+	public void selectBookFromCategoryTab() {
+		Tab selectedTab = categoryTabPane.getSelectionModel().getSelectedItem();
+		if (selectedTab != null) {
+			Node tabContent = selectedTab.getContent();
+			if (tabContent instanceof TableView) {
+				TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
+				BookData selectedBook = bookTableView.getSelectionModel().getSelectedItem();
+				if (selectedBook != null) {
+					// Hiển thị thông tin sách trong các trường thông tin
+					posDetailBookName.setText(selectedBook.getBookName());
+
+					String uri = "file:" + selectedBook.getBookImage();
+					image = new Image(uri, 101, 127, false, true);
+					posDetailBookImage.setImage(image);
+					
+					// Reset quantityBook và posQuantity về 1 khi chọn hàng mới
+	                quantityBook = 1;
+	                posQuantity.setText(Integer.toString(quantityBook));
+				}
+			}
+		}
+	}
+	
+	
+	
+	private int quantityBook = 1;
+	
+	@FXML
+	private void plusQuantity(ActionEvent event) {
+	    Tab selectedTab = categoryTabPane.getSelectionModel().getSelectedItem();
+	    if (selectedTab != null) {
+	        Node tabContent = selectedTab.getContent();
+	        if (tabContent instanceof TableView) {
+	            TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
+	            BookData selectedBook = bookTableView.getSelectionModel().getSelectedItem();
+	            if (selectedBook != null) {
+	                int maxQuantity = selectedBook.getQuantity();
+	                if (quantityBook < maxQuantity) {
+	                    quantityBook++;
+	                    posQuantity.setText(Integer.toString(quantityBook));
+	                } else {
+	                    Alert alert = new Alert(Alert.AlertType.ERROR);
+	                    alert.setTitle("Lỗi");
+	                    alert.setHeaderText(null);
+	                    alert.setContentText("Không thể tăng số lượng được nữa.");
+	                    alert.showAndWait();
+	                }
+	            }
+	        }
+	    }
+	}
+
+
+	@FXML
+	private void minusQuantity(ActionEvent event) {
+	    if (quantityBook > 1) {
+	        quantityBook--;
+	        posQuantity.setText(Integer.toString(quantityBook));
+	    } else {
+	        Alert alert = new Alert(Alert.AlertType.ERROR);
+	        alert.setTitle("Lỗi");
+	        alert.setHeaderText(null);
+	        alert.setContentText("Không thể giảm số lượng dưới 1.");
+	        alert.showAndWait();
+	    }
+	}
+
+
+//-------------------------------------------------------------------------------------------------------
 
 	// Switch form
 	public void switchForm(ActionEvent event) {
@@ -2020,6 +2245,30 @@ public class AdminController implements Initializable {
 			addEmployeeSearch(event);
 		});
 
+		populateCategoryTabs();
+
+		categoryTabPane.getSelectionModel().selectedItemProperty().addListener((obs, oldTab, newTab) -> {
+			if (newTab != null) {
+				TableView<BookData> tableView = (TableView<BookData>) newTab.getContent();
+				tableView.setOnMouseClicked(event -> {
+					// Xử lý khi người dùng click vào TableView
+					BookData selectedBook = tableView.getSelectionModel().getSelectedItem();
+					if (selectedBook != null) {
+						// Hiển thị thông tin sách được chọn hoặc thực hiện các xử lý khác ở đây
+						posDetailBookName.setText(selectedBook.getBookName());
+						String uri = "file:" + selectedBook.getBookImage();
+						image = new Image(uri, 101, 127, false, true);
+						posDetailBookImage.setImage(image);
+						
+						quantityBook = 1;
+		                posQuantity.setText(Integer.toString(quantityBook));
+					}
+				});
+			}
+		});
+		
+		posQuantity.setText(Integer.toString(quantityBook));
+		
 	}
 
 }

@@ -28,6 +28,11 @@ public class BookData {
 		this.categoryName = categoryName;
 		this.areaName = areaName;
 	}
+	
+	public BookData(String bookName, String authorName, String publicationYear, int quantity, String bookImage, int categoryId, int areaID, String categoryName, String areaName) {
+        // Gọi constructor hiện tại để khởi tạo bookID và các trường còn lại
+        this(0, bookName, authorName, publicationYear, quantity, bookImage, categoryId, areaID, categoryName, areaName);
+    }
 
 	public int getBookID() {
 		return bookID;

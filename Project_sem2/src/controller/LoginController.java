@@ -16,6 +16,8 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ResourceBundle;
+
+import data.EmployeeData;
 import database.DbConnection;
 import javafx.fxml.FXML;
 import javafx.fxml.FXMLLoader;
@@ -49,7 +51,7 @@ public class LoginController implements Initializable {
 	@Override
 	public void initialize(URL arg0, ResourceBundle arg1) {
 		password.setVisible(true);
-        passwordTextField.setVisible(false);
+		passwordTextField.setVisible(false);
 	}
 
 	public LoginController() {
@@ -82,6 +84,14 @@ public class LoginController implements Initializable {
 			rs = ps.executeQuery();
 
 			if (rs.next()) {
+				EmployeeData loggedInUserData = new EmployeeData(rs.getInt("id"), rs.getString("fullname"),
+						rs.getString("username"), rs.getString("email"), rs.getString("phone_number"),
+						rs.getString("password_hash"), rs.getString("gender"), rs.getString("user_image"),
+						rs.getString("address"), rs.getDate("arrive_date"));
+
+				// Đặt thông tin người dùng đã đăng nhập
+				UserController.setLoggedInUser(loggedInUserData);
+
 				Scene scene = loginButton.getScene();
 				Stage stage = (Stage) scene.getWindow();
 				stage.close();

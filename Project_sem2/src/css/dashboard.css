@@ -176,6 +176,10 @@
 	-fx-background-color: #9d3485;
 }
 
+.center-textfield {
+    -fx-alignment: center;
+}
+
 
 
 

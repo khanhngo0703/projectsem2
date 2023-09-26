@@ -16,7 +16,7 @@ public class Main extends Application {
 
         stage.setScene(scene);
         stage.setTitle("Library Management");
-//        stage.getIcons().add(new javafx.scene.image.Image("/asset/microsoft_store.png"));
+//        stage.getIcons().add(ndew javafx.scene.image.Image("/asset/microsoft_store.png"));
         stage.show();
     }
 
