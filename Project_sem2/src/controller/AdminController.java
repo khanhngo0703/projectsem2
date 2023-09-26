@@ -327,6 +327,18 @@ public class AdminController implements Initializable {
 	private AnchorPane area_form;
 
 	@FXML
+	private TableColumn<?, ?> borrowBook_col_bookName;
+
+	@FXML
+	private TableColumn<?, ?> borrowBook_col_bookQuantity;
+
+	@FXML
+	private Button borrowBook_orderBtn;
+
+	@FXML
+	private TableView<?> borrowBook_tableView;
+
+	@FXML
 	private TabPane categoryTabPane;
 
 	@FXML
@@ -2032,59 +2044,55 @@ public class AdminController implements Initializable {
 					String uri = "file:" + selectedBook.getBookImage();
 					image = new Image(uri, 101, 127, false, true);
 					posDetailBookImage.setImage(image);
-					
+
 					// Reset quantityBook và posQuantity về 1 khi chọn hàng mới
-	                quantityBook = 1;
-	                posQuantity.setText(Integer.toString(quantityBook));
+					quantityBook = 1;
+					posQuantity.setText(Integer.toString(quantityBook));
 				}
 			}
 		}
 	}
-	
-	
-	
+
 	private int quantityBook = 1;
-	
+
 	@FXML
 	private void plusQuantity(ActionEvent event) {
-	    Tab selectedTab = categoryTabPane.getSelectionModel().getSelectedItem();
-	    if (selectedTab != null) {
-	        Node tabContent = selectedTab.getContent();
-	        if (tabContent instanceof TableView) {
-	            TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
-	            BookData selectedBook = bookTableView.getSelectionModel().getSelectedItem();
-	            if (selectedBook != null) {
-	                int maxQuantity = selectedBook.getQuantity();
-	                if (quantityBook < maxQuantity) {
-	                    quantityBook++;
-	                    posQuantity.setText(Integer.toString(quantityBook));
-	                } else {
-	                    Alert alert = new Alert(Alert.AlertType.ERROR);
-	                    alert.setTitle("Lỗi");
-	                    alert.setHeaderText(null);
-	                    alert.setContentText("Không thể tăng số lượng được nữa.");
-	                    alert.showAndWait();
-	                }
-	            }
-	        }
-	    }
+		Tab selectedTab = categoryTabPane.getSelectionModel().getSelectedItem();
+		if (selectedTab != null) {
+			Node tabContent = selectedTab.getContent();
+			if (tabContent instanceof TableView) {
+				TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
+				BookData selectedBook = bookTableView.getSelectionModel().getSelectedItem();
+				if (selectedBook != null) {
+					int maxQuantity = selectedBook.getQuantity();
+					if (quantityBook < maxQuantity) {
+						quantityBook++;
+						posQuantity.setText(Integer.toString(quantityBook));
+					} else {
+						Alert alert = new Alert(Alert.AlertType.ERROR);
+						alert.setTitle("Lỗi");
+						alert.setHeaderText(null);
+						alert.setContentText("Không thể tăng số lượng được nữa.");
+						alert.showAndWait();
+					}
+				}
+			}
+		}
 	}
-
 
 	@FXML
 	private void minusQuantity(ActionEvent event) {
-	    if (quantityBook > 1) {
-	        quantityBook--;
-	        posQuantity.setText(Integer.toString(quantityBook));
-	    } else {
-	        Alert alert = new Alert(Alert.AlertType.ERROR);
-	        alert.setTitle("Lỗi");
-	        alert.setHeaderText(null);
-	        alert.setContentText("Không thể giảm số lượng dưới 1.");
-	        alert.showAndWait();
-	    }
+		if (quantityBook > 1) {
+			quantityBook--;
+			posQuantity.setText(Integer.toString(quantityBook));
+		} else {
+			Alert alert = new Alert(Alert.AlertType.ERROR);
+			alert.setTitle("Lỗi");
+			alert.setHeaderText(null);
+			alert.setContentText("Không thể giảm số lượng dưới 1.");
+			alert.showAndWait();
+		}
 	}
-
 
 //-------------------------------------------------------------------------------------------------------
 
@@ -2259,16 +2267,16 @@ public class AdminController implements Initializable {
 						String uri = "file:" + selectedBook.getBookImage();
 						image = new Image(uri, 101, 127, false, true);
 						posDetailBookImage.setImage(image);
-						
+
 						quantityBook = 1;
-		                posQuantity.setText(Integer.toString(quantityBook));
+						posQuantity.setText(Integer.toString(quantityBook));
 					}
 				});
 			}
 		});
-		
+
 		posQuantity.setText(Integer.toString(quantityBook));
-		
+
 	}
 
 }

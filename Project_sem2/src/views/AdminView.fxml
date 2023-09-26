@@ -980,11 +980,10 @@
 													layoutX="142.0" layoutY="393.0" prefHeight="26.0"
 													prefWidth="149.0" styleClass="textfield"
 													stylesheets="@../css/dashboard.css" />
-												<Button fx:id="addArea_addBtn1" layoutX="177.0"
-													layoutY="484.0" mnemonicParsing="false"
-													onAction="#addAreaAdd" prefHeight="25.0" prefWidth="83.0"
-													styleClass="add-btn" stylesheets="@../css/dashboard.css"
-													text="Order" />
+												<Button fx:id="borrowBook_orderBtn" layoutX="177.0"
+													layoutY="484.0" mnemonicParsing="false" prefHeight="25.0"
+													prefWidth="83.0" styleClass="add-btn"
+													stylesheets="@../css/dashboard.css" text="Order" />
 												<Label layoutX="81.0" layoutY="14.0"
 													text="Type of Book">
 													<font>
@@ -1039,14 +1038,14 @@
 												<String fx:value="white-bg" />
 											</styleClass>
 											<children>
-												<TableView fx:id="addArea_tableView1"
-													layoutX="6.0" layoutY="82.0"
-													onMouseClicked="#addAreaSelect" prefHeight="315.0"
+												<TableView fx:id="borrowBook_tableView"
+													layoutX="6.0" layoutY="82.0" prefHeight="315.0"
 													prefWidth="542.0">
 													<columns>
-														<TableColumn fx:id="addArea_col_areaID1"
+														<TableColumn fx:id="borrowBook_col_bookName"
 															prefWidth="382.6667175292969" text="BookName" />
-														<TableColumn fx:id="addArea_col_areaName1"
+														<TableColumn
+															fx:id="borrowBook_col_bookQuantity"
 															prefWidth="158.66650390625" text="Quantity" />
 													</columns>
 												</TableView>
