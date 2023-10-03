@@ -1,7 +1,10 @@
 package controller;
 
+import java.awt.Desktop;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URL;
 import java.sql.Connection;
 import java.sql.Date;
@@ -19,6 +22,9 @@ import java.util.ResourceBundle;
 
 import data.AreaData;
 import data.BookData;
+import data.BorrowedBookData;
+import data.BorrowedBookDetailData;
+import data.BorrowedBookInfo;
 import data.CategoryData;
 import data.CustomerData;
 import data.EmployeeData;
@@ -26,6 +32,7 @@ import database.DbConnection;
 import javafx.beans.binding.Bindings;
 import javafx.beans.binding.IntegerBinding;
 import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 import javafx.collections.FXCollections;
 import javafx.collections.ObservableList;
@@ -61,6 +68,8 @@ import javafx.stage.FileChooser;
 import javafx.stage.Stage;
 
 public class AdminController implements Initializable {
+
+	private static final int DEFAULT_USER_ID = 0;
 
 	@FXML
 	private Button addArea_addBtn;
@@ -327,16 +336,16 @@ public class AdminController implements Initializable {
 	private AnchorPane area_form;
 
 	@FXML
-	private TableColumn<?, ?> borrowBook_col_bookName;
+	private TableColumn<BookData, String> borrowBook_col_bookName;
 
 	@FXML
-	private TableColumn<?, ?> borrowBook_col_bookQuantity;
+	private TableColumn<BookData, Integer> borrowBook_col_bookQuantity;
 
 	@FXML
 	private Button borrowBook_orderBtn;
 
 	@FXML
-	private TableView<?> borrowBook_tableView;
+	private TableView<BookData> borrowBook_tableView;
 
 	@FXML
 	private TabPane categoryTabPane;
@@ -349,6 +358,12 @@ public class AdminController implements Initializable {
 
 	@FXML
 	private Button changepass;
+
+	@FXML
+	private Button confirmOrder_Btn;
+
+	@FXML
+	private TextField customerName;
 
 	@FXML
 	private Button customers_btn;
@@ -384,10 +399,16 @@ public class AdminController implements Initializable {
 	private AnchorPane pos_form;
 
 	@FXML
+	private TextField pos_search;
+
+	@FXML
 	private Button staticis_btn;
 
 	@FXML
 	private Label username;
+
+	@FXML
+	private Button viewBookLoanCoupon_Btn;
 
 	private Connection connect;
 	private Statement statement;
@@ -551,7 +572,7 @@ public class AdminController implements Initializable {
 		if (bookData != null) {
 			int bookId = bookData.getBookID();
 
-			String sql = "UPDATE books SET book_name = ?, author_name = ?, publication_year = ?, quantity = ?, book_image = ?, category_id = ?, area_id = ? WHERE id = ?";
+			String sql = "UPDATE books SET book_name = ?, author_name = ?, publication_year = ?, quantity = ?, book_image = ?, category_id = ?, area_id = ? WHERE book_id = ?";
 
 			DbConnection dbc = DbConnection.getDatabaseConnection();
 			connect = dbc.getConnection();
@@ -621,7 +642,7 @@ public class AdminController implements Initializable {
 		if (bookData != null) {
 			int bookId = bookData.getBookID();
 
-			String sql = "DELETE FROM books WHERE id = ?";
+			String sql = "DELETE FROM books WHERE book_id = ?";
 
 			DbConnection dbc = DbConnection.getDatabaseConnection();
 			connect = dbc.getConnection();
@@ -728,7 +749,7 @@ public class AdminController implements Initializable {
 			BookData bookData;
 
 			while (result.next()) {
-				bookData = new BookData(result.getInt("id"), result.getString("book_name"),
+				bookData = new BookData(result.getInt("book_id"), result.getString("book_name"),
 						result.getString("author_name"), result.getString("publication_year"),
 						result.getInt("quantity"), result.getString("book_image"), result.getInt("category_id"),
 						result.getInt("area_id"), result.getString("category_name"), result.getString("area_name"));
@@ -774,6 +795,42 @@ public class AdminController implements Initializable {
 			addBook_area.getSelectionModel().select(bookData.getAreaName());
 			addBook_category.getSelectionModel().select(bookData.getCategoryName());
 		}
+	}
+
+	public void updateBookListFromDatabase() {
+		// Xóa dữ liệu hiện có trong addBook_tableView
+		addBook_tableView.getItems().clear();
+
+		// Truy vấn cơ sở dữ liệu để lấy dữ liệu sách mới
+		ObservableList<BookData> newBookList = getBookListFromDatabase();
+
+		// Cập nhật addBook_tableView bằng dữ liệu mới
+		addBook_tableView.setItems(newBookList);
+	}
+
+	public ObservableList<BookData> getBookListFromDatabase() {
+		ObservableList<BookData> listData = FXCollections.observableArrayList();
+		String sql = "SELECT books.*, category.category_name, area.area_name FROM books INNER JOIN category ON books.category_id = category.id INNER JOIN area ON books.area_id = area.id";
+
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		connect = dbc.getConnection();
+
+		try {
+			prepare = connect.prepareStatement(sql);
+			result = prepare.executeQuery();
+			BookData bookData;
+
+			while (result.next()) {
+				bookData = new BookData(result.getInt("book_id"), result.getString("book_name"),
+						result.getString("author_name"), result.getString("publication_year"),
+						result.getInt("quantity"), result.getString("book_image"), result.getInt("category_id"),
+						result.getInt("area_id"), result.getString("category_name"), result.getString("area_name"));
+				listData.add(bookData);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return listData;
 	}
 
 //---------------------------------------------------------------------------------------------
@@ -1239,32 +1296,40 @@ public class AdminController implements Initializable {
 						alert.setContentText("Invalid phone number format");
 						alert.showAndWait();
 					} else {
-						alert = new Alert(AlertType.CONFIRMATION);
-						alert.setTitle("Confirmation Message");
-						alert.setHeaderText(null);
-						alert.setContentText("Are you sure you want to UPDATE customer");
-						Optional<ButtonType> option = alert.showAndWait();
-
-						if (option.get() == ButtonType.OK) {
-							prepare = connect.prepareStatement(sql);
-							prepare.setString(1, fullname);
-							prepare.setString(2, email);
-							prepare.setString(3, gender);
-							prepare.setString(4, phone);
-							prepare.setDate(5, java.sql.Date.valueOf(arriveDate));
-							prepare.setString(6, status);
-							prepare.setInt(7, customerID);
-
-							prepare.executeUpdate();
-
-							alert = new Alert(AlertType.INFORMATION);
-							alert.setTitle("Information Message");
+						if (arriveDate == null) {
+							alert = new Alert(AlertType.ERROR);
+							alert.setTitle("Error Message");
 							alert.setHeaderText(null);
-							alert.setContentText("Successfully Updated!");
+							alert.setContentText("Please select an arrival date.");
 							alert.showAndWait();
+						} else {
+							alert = new Alert(AlertType.CONFIRMATION);
+							alert.setTitle("Confirmation Message");
+							alert.setHeaderText(null);
+							alert.setContentText("Are you sure you want to UPDATE customer");
+							Optional<ButtonType> option = alert.showAndWait();
 
-							addCustomerShowListData();
-							addCustomerReset();
+							if (option.get() == ButtonType.OK) {
+								prepare = connect.prepareStatement(sql);
+								prepare.setString(1, fullname);
+								prepare.setString(2, email);
+								prepare.setString(3, gender);
+								prepare.setString(4, phone);
+								prepare.setDate(5, java.sql.Date.valueOf(arriveDate));
+								prepare.setString(6, status);
+								prepare.setInt(7, customerID);
+
+								prepare.executeUpdate();
+
+								alert = new Alert(AlertType.INFORMATION);
+								alert.setTitle("Information Message");
+								alert.setHeaderText(null);
+								alert.setContentText("Successfully Updated!");
+								alert.showAndWait();
+
+								addCustomerShowListData();
+								addCustomerReset();
+							}
 						}
 					}
 				}
@@ -1865,6 +1930,8 @@ public class AdminController implements Initializable {
 
 	private ObservableList<CategoryData> addCategoryList;
 
+	private int selectedBookId;
+
 	public void addCategoryShowListData() {
 		addCategoryList = addCategoryListData();
 
@@ -1940,7 +2007,7 @@ public class AdminController implements Initializable {
 	// POS
 	public Map<String, List<BookData>> getCategoryData() {
 		Map<String, List<BookData>> categoryDataMap = new HashMap<>();
-		String sql = "SELECT category.category_name, books.book_name, books.quantity, books.author_name, books.publication_year, books.book_image, books.category_id, books.area_id, category.category_name AS category_name, area.area_name AS area_name "
+		String sql = "SELECT books.book_id, category.category_name, books.book_name, books.quantity, books.author_name, books.publication_year, books.book_image, books.category_id, books.area_id, category.category_name AS category_name, area.area_name AS area_name "
 				+ "FROM category " + "INNER JOIN books ON category.id = books.category_id "
 				+ "INNER JOIN area ON books.area_id = area.id"; // Bổ sung INNER JOIN để lấy area_name
 
@@ -1952,6 +2019,7 @@ public class AdminController implements Initializable {
 			result = prepare.executeQuery();
 
 			while (result.next()) {
+				int id = result.getInt("book_id");
 				String categoryName = result.getString("category_name");
 				String bookName = result.getString("book_name");
 				int quantity = result.getInt("quantity");
@@ -1968,7 +2036,7 @@ public class AdminController implements Initializable {
 				}
 
 				// Thêm sách vào danh sách sách của danh mục
-				categoryDataMap.get(categoryName).add(new BookData(bookName, authorName, publicationYear, quantity,
+				categoryDataMap.get(categoryName).add(new BookData(id, bookName, authorName, publicationYear, quantity,
 						bookImage, categoryId, areaId, categoryName, areaName));
 			}
 		} catch (Exception ex) {
@@ -1978,8 +2046,9 @@ public class AdminController implements Initializable {
 		return categoryDataMap;
 	}
 
+	private Map<String, List<BookData>> categoryDataMap = getCategoryData();
+
 	public void populateCategoryTabs() {
-		Map<String, List<BookData>> categoryDataMap = getCategoryData();
 
 		for (Map.Entry<String, List<BookData>> entry : categoryDataMap.entrySet()) {
 			String categoryName = entry.getKey();
@@ -2001,13 +2070,114 @@ public class AdminController implements Initializable {
 		}
 	}
 
+	private void updateCategoryTabPane() {
+		if (categoryDataMap != null && !categoryDataMap.isEmpty()) {
+			categoryTabPane.getTabs().clear(); // Xóa tất cả các tab hiện có
+
+			for (Map.Entry<String, List<BookData>> entry : categoryDataMap.entrySet()) {
+				String categoryName = entry.getKey();
+				List<BookData> books = entry.getValue();
+
+				Tab categoryTab = new Tab(categoryName);
+				TableView<BookData> bookTableView = createBookTableView(books);
+				categoryTab.setContent(bookTableView);
+				categoryTabPane.getTabs().add(categoryTab);
+			}
+		}
+	}
+
+	private List<BorrowedBookInfo> borrowedBooksList = new ArrayList<>(); // Danh sách lưu thông tin sách và số lượng
+
+	@FXML
+	private void orderBook(ActionEvent event) {
+		// Kiểm tra xem tab được chọn trong categoryTabPane
+		Tab selectedTab = categoryTabPane.getSelectionModel().getSelectedItem();
+		if (selectedTab != null) {
+			Node tabContent = selectedTab.getContent();
+			if (tabContent instanceof TableView) {
+				TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
+				BookData selectedBook = bookTableView.getSelectionModel().getSelectedItem();
+				if (selectedBook != null) {
+					// Lấy thông tin sách đã chọn
+					int bookId = selectedBook.getBookID();
+					String bookName = selectedBook.getBookName();
+					int selectedQuantity = Integer.parseInt(posQuantity.getText()); // Lấy giá trị từ posQuantity
+
+					// Kiểm tra xem số lượng sách đủ để đặt hàng không
+					if (selectedQuantity <= selectedBook.getQuantity()) {
+						// Giảm số lượng sách trong danh sách gốc
+						selectedBook.setQuantity(selectedBook.getQuantity() - selectedQuantity);
+
+						// Cập nhật số lượng sách ban đầu trong categoryTabPane
+						updateCategoryTabPane();
+
+						// Thêm thông tin sách và số lượng vào danh sách borrowedBooksList
+						BorrowedBookInfo borrowedBookInfo = new BorrowedBookInfo(selectedBook, selectedQuantity);
+						borrowedBooksList.add(borrowedBookInfo);
+
+						// Hiển thị thông tin sách trong borrowBook_tableView
+						TableColumn<BookData, String> bookNameColumn = borrowBook_col_bookName;
+						TableColumn<BookData, Integer> bookQuantityColumn = borrowBook_col_bookQuantity;
+
+						bookNameColumn.setCellValueFactory(cellData -> new SimpleStringProperty(bookName));
+						bookQuantityColumn
+								.setCellValueFactory(cellData -> new SimpleObjectProperty<>(selectedQuantity)); // Sử
+																												// dụng
+																												// selectedQuantity
+
+						// Thêm thông tin sách vào borrowBook_tableView
+						borrowBook_tableView.getItems().add(selectedBook);
+
+						// Cập nhật số lượng sách trong cơ sở dữ liệu (thực hiện sau)
+						updateBookQuantityInDatabase(bookId, selectedBook.getQuantity());
+					} else {
+						showAlert("Lỗi", "Số lượng sách không đủ.", Alert.AlertType.ERROR);
+					}
+				}
+			}
+		}
+	}
+
+	private void updateBookQuantityInDatabase(int bookId, int newQuantity) {
+		String sql = "UPDATE books SET quantity = ? WHERE book_id = ?";
+
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		Connection connect = dbc.getConnection();
+		PreparedStatement prepare = null;
+
+		try {
+			prepare = connect.prepareStatement(sql);
+			prepare.setInt(1, newQuantity);
+			prepare.setInt(2, bookId);
+
+			int rowsAffected = prepare.executeUpdate();
+
+			if (rowsAffected > 0) {
+
+			} else {
+				showAlert("Lỗi", "Không thể cập nhật số lượng sách trong cơ sở dữ liệu.", Alert.AlertType.ERROR);
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			// Đóng PreparedStatement
+			if (prepare != null) {
+				try {
+					prepare.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+	}
+
 	public TableView<BookData> createBookTableView(List<BookData> books) {
 		TableView<BookData> tableView = new TableView<>();
 		TableColumn<BookData, String> nameColumn = new TableColumn<>("Book Name");
 		TableColumn<BookData, Integer> quantityColumn = new TableColumn<>("Quantity");
 
 		// Đặt chiều rộng cho cột Book Name
-		nameColumn.setPrefWidth(213); // 200 là giá trị chiều rộng mong muốn
+		nameColumn.setPrefWidth(213);
 
 		// Đặt chiều rộng cho cột Quantity
 		quantityColumn.setPrefWidth(70);
@@ -2094,6 +2264,324 @@ public class AdminController implements Initializable {
 		}
 	}
 
+	@FXML
+	private void confirmOrder(ActionEvent event) {
+		// Lấy thông tin sách từ borrowedBooksList
+		EmployeeData currentUser = UserController.getLoggedInUser();
+
+		if (borrowedBooksList.isEmpty()) {
+			// Kiểm tra nếu không có sách nào trong borrowedBooksList
+			showAlert("Lỗi", "Không có sách nào để mượn.", Alert.AlertType.ERROR);
+			return;
+		}
+
+		// Thực hiện việc thêm thông tin sách vào cơ sở dữ liệu borrowedbooksdetails
+		boolean success = addBooksToBorrowedBooksDetails(currentUser, borrowedBooksList);
+
+		if (success) {
+			// Xóa tất cả sách khỏi borrowBook_tableView nếu thêm thành công
+			borrowBook_tableView.getItems().clear();
+			showAlert("Thông báo", "Đã mượn thành công tất cả các cuốn sách.", Alert.AlertType.INFORMATION);
+		} else {
+			// Xử lý lỗi nếu không thể thêm sách vào cơ sở dữ liệu
+			showAlert("Lỗi", "Không thể thêm sách vào borrowedbooksdetails.", Alert.AlertType.ERROR);
+		}
+	}
+
+	private int addBooksToBorrowedBooks(EmployeeData currentUser) {
+		String sql = "INSERT INTO borrowedbooks (customer_id, user_id, borrow_date, due_date) VALUES (?, ?, ?, ?)";
+
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		Connection connect = dbc.getConnection();
+		PreparedStatement prepare = null;
+
+		try {
+			int customerId = getCurrentCustomerId(); // Lấy customer_id
+			int userId = getCurrentUserId(currentUser); // Lấy user_id
+
+			if (customerId <= 0 || userId <= 0) {
+				showAlert("Error Message", "Invalid input data", Alert.AlertType.ERROR);
+				return -1; // Trả về -1 để chỉ ra lỗi
+			}
+
+			LocalDate borrowDate = LocalDate.now(); // Ngày mượn
+			LocalDate dueDate = borrowDate.plusDays(7); // Ngày đến hạn
+
+			prepare = connect.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+			prepare.setInt(1, customerId);
+			prepare.setInt(2, userId);
+			prepare.setDate(3, Date.valueOf(borrowDate));
+			prepare.setDate(4, Date.valueOf(dueDate));
+
+			int rowsAffected = prepare.executeUpdate();
+
+			if (rowsAffected > 0) {
+				// Lấy borrow_id sau khi thêm dữ liệu
+				ResultSet generatedKeys = prepare.getGeneratedKeys();
+				if (generatedKeys.next()) {
+					return generatedKeys.getInt(1);
+				}
+			} else {
+				showAlert("Error Message", "Failed to add data to borrowedbooks", Alert.AlertType.ERROR);
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			// Đóng PreparedStatement
+			if (prepare != null) {
+				try {
+					prepare.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return -1; // Trả về -1 nếu có lỗi
+	}
+
+	private boolean addBooksToBorrowedBooksDetails(EmployeeData currentUser, List<BorrowedBookInfo> selectedBooks) {
+		String sql = "INSERT INTO borrowedbooksdetails (borrow_id, book_id, quantity, borrow_date, due_date) VALUES (?, ?, ?, ?, ?)";
+
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		Connection connect = dbc.getConnection();
+		PreparedStatement prepare = null;
+
+		try {
+			int borrowId = addBooksToBorrowedBooks(currentUser);
+
+			if (borrowId > 0) {
+				for (BorrowedBookInfo borrowedBookInfo : selectedBooks) {
+					BookData book = borrowedBookInfo.getBook();
+					int bookId = book.getBookID();
+					int quantity = borrowedBookInfo.getQuantity(); // Lấy số lượng tương ứng
+
+					LocalDate borrowDate = LocalDate.now(); // Ngày mượn
+					LocalDate dueDate = borrowDate.plusDays(7); // Ngày đến hạn (ví dụ: 7 ngày sau ngày mượn)
+
+					prepare = connect.prepareStatement(sql);
+					prepare.setInt(1, borrowId);
+					prepare.setInt(2, bookId);
+					prepare.setInt(3, quantity); // Thêm selectedQuantity vào câu SQL
+					prepare.setDate(4, Date.valueOf(borrowDate));
+					prepare.setDate(5, Date.valueOf(dueDate));
+
+					int rowsAffected = prepare.executeUpdate();
+
+					if (rowsAffected <= 0) {
+						return false; // Trả về false nếu có lỗi khi thêm sách
+					}
+				}
+				return true;
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		} finally {
+			// Đóng PreparedStatement
+			if (prepare != null) {
+				try {
+					prepare.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return false; // Trả về false nếu có lỗi
+	}
+
+	// Phương thức để lấy thông tin khách hàng hiện tại (customerId)
+	private int getCurrentCustomerId() {
+		String customername = customerName.getText(); // Lấy tên khách hàng từ giao diện người dùng
+		int defaultCustomerId = 1; // Giá trị mặc định khi không có customerId
+
+		// Triển khai logic để lấy customerId từ cơ sở dữ liệu dựa trên tên khách hàng
+		int customerId = getCustomerIdByName(customername);
+
+		if (customerId <= 0) {
+			// Nếu không thể lấy được customerId, trả về giá trị mặc định.
+			return defaultCustomerId;
+		} else {
+			return customerId;
+		}
+	}
+
+	private int getCustomerIdByName(String customerName) {
+		String sql = "SELECT id FROM customer WHERE fullname = ?";
+		int customerId = -1; // Giá trị mặc định khi không tìm thấy khách hàng
+
+		try {
+			prepare = connect.prepareStatement(sql);
+			prepare.setString(1, customerName);
+
+			ResultSet resultSet = prepare.executeQuery();
+
+			if (resultSet.next()) {
+				customerId = resultSet.getInt("id");
+			}
+		} catch (SQLException e) {
+			e.printStackTrace();
+		} finally {
+			// Đóng PreparedStatement
+			if (prepare != null) {
+				try {
+					prepare.close();
+				} catch (SQLException e) {
+					e.printStackTrace();
+				}
+			}
+		}
+
+		return customerId;
+	}
+
+	// Phương thức để lấy thông tin người dùng hiện tại (userId)
+	private int getCurrentUserId(EmployeeData user) {
+		if (user != null) {
+			return user.getEmployeeID();
+		} else {
+			// Xử lý trường hợp user là null, ví dụ: trả về một giá trị mặc định
+			return DEFAULT_USER_ID;
+		}
+	}
+
+	// Search book in POS
+	public void searchBooks(KeyEvent event) {
+		// Lấy giá trị tìm kiếm từ TextField pos_search
+		String searchValue = pos_search.getText().toLowerCase().trim();
+
+		// Duyệt qua các tab trong categoryTabPane
+		for (Tab categoryTab : categoryTabPane.getTabs()) {
+			Node tabContent = categoryTab.getContent();
+			if (tabContent instanceof TableView) {
+				TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
+
+				// Áp dụng bộ lọc tìm kiếm cho mỗi TableView
+				FilteredList<BookData> filteredList = new FilteredList<>(
+						FXCollections.observableArrayList(bookTableView.getItems()));
+
+				filteredList.setPredicate(bookData -> {
+					if (searchValue == null || searchValue.isEmpty()) {
+						return true;
+					}
+
+					return bookData.getBookName().toLowerCase().contains(searchValue)
+							|| bookData.getAuthorName().toLowerCase().contains(searchValue)
+							|| bookData.getPublicationYear().toLowerCase().contains(searchValue)
+							|| Integer.toString(bookData.getQuantity()).contains(searchValue)
+							|| bookData.getCategoryName().toLowerCase().contains(searchValue)
+							|| bookData.getAreaName().toLowerCase().contains(searchValue);
+				});
+
+				bookTableView.setItems(filteredList);
+			}
+		}
+
+		if (searchValue.isEmpty()) {
+			restoreOriginalData();
+		}
+	}
+
+	private Map<String, List<BookData>> originalCategoryDataMap;
+
+	private void restoreOriginalData() {
+		for (Tab categoryTab : categoryTabPane.getTabs()) {
+			Node tabContent = categoryTab.getContent();
+			if (tabContent instanceof TableView) {
+				TableView<BookData> bookTableView = (TableView<BookData>) tabContent;
+				String categoryName = categoryTab.getText();
+
+				// Lấy danh sách ban đầu từ danh sách Map
+				List<BookData> originalData = originalCategoryDataMap.get(categoryName);
+
+				// Đặt danh sách ban đầu vào TableView
+				bookTableView.setItems(FXCollections.observableArrayList(originalData));
+			}
+		}
+	}
+
+	// Phương thức để hiển thị thông báo
+	private void showAlert(String title, String content, Alert.AlertType alertType) {
+		Alert alert = new Alert(alertType);
+		alert.setTitle(title);
+		alert.setHeaderText(null);
+		alert.setContentText(content);
+		alert.showAndWait();
+	}
+
+	// Book loan coupon
+	private EmployeeData currentUser; // Khai báo biến thành viên
+
+	// Hàm để gán giá trị cho currentUser
+	public void setCurrentUser(EmployeeData user) {
+		this.currentUser = user;
+	}
+
+	@FXML
+	private void viewBookCoupon(ActionEvent event) {
+		if (!borrowedBooksList.isEmpty()) {
+			// Tạo chuỗi thông tin phiếu mượn sách
+			StringBuilder couponInfo = new StringBuilder();
+			String customerFullName = customerName.getText(); // Lấy tên khách hàng từ giao diện người dùng
+			String employeeFullName = currentUser.getFullName(); // Lấy tên của currentUser
+			couponInfo.append("                                               PHIẾU MƯỢN SÁCH\n");
+			couponInfo.append("Ngày:\n");
+			couponInfo.append("Giờ: \n");
+			// Thêm thông tin tên khách hàng và tên của currentUser vào couponInfo
+			couponInfo.append("Khách hàng: ").append(customerFullName).append("\n");
+			couponInfo.append("Nhân viên: ").append(employeeFullName).append("\n\n");
+			couponInfo.append(
+					"-------------------------------------------------------------------------------------------------------\n");
+			couponInfo.append("                                           THÔNG TIN THANH TOÁN\n");
+			couponInfo.append(
+					"-------------------------------------------------------------------------------------------------------\n");
+			couponInfo.append(
+					"     Tên sách                                                                    Số lượng        ")
+					.append("\n");
+			couponInfo.append(
+					"-------------------------------------------------------------------------------------------------------\n");
+			// Duyệt qua danh sách sách đã mượn và thêm thông tin từng cuốn sách vào
+			// couponInfo
+			for (BorrowedBookInfo borrowedBookInfo : borrowedBooksList) {
+				BookData book = borrowedBookInfo.getBook();
+				int quantity = borrowedBookInfo.getQuantity();
+
+				couponInfo.append("     ").append(book.getBookName())
+						.append("                                                                           ")
+						.append(quantity).append("            ").append("\n");
+
+				// Thêm thông tin khác của sách nếu cần
+
+				couponInfo.append(
+						"-------------------------------------------------------------------------------------------------------\n");
+			}
+			couponInfo.append("                                         CẢM ƠN QUÝ KHÁCH!\n");
+
+			// Tạo tệp tin txt chứa thông tin phiếu mượn sách
+			try (PrintWriter writer = new PrintWriter("LoanCoupon.txt")) {
+				writer.println(couponInfo.toString());
+			} catch (FileNotFoundException e) {
+				e.printStackTrace();
+				showAlert("Lỗi", "Không thể tạo tệp tin phiếu mượn sách.", Alert.AlertType.ERROR);
+			}
+
+			// Mở tệp tin txt để hiển thị
+			openTxtFile("LoanCoupon.txt");
+		} else {
+			showAlert("Lỗi", "Không có sách nào để tạo phiếu mượn.", Alert.AlertType.ERROR);
+		}
+	}
+
+	private void openTxtFile(String filePath) {
+		File file = new File(filePath);
+		try {
+			Desktop.getDesktop().open(file);
+		} catch (IOException e) {
+			e.printStackTrace();
+			showAlert("Lỗi", "Không thể mở tệp tin.", Alert.AlertType.ERROR);
+		}
+	}
+
 //-------------------------------------------------------------------------------------------------------
 
 	// Switch form
@@ -2132,7 +2620,10 @@ public class AdminController implements Initializable {
 			category_btn.setStyle("-fx-background-color: transparent");
 			pos_btn.setStyle("-fx-background-color: transparent");
 
+			updateBookListFromDatabase();
+
 		} else if (event.getSource() == addEmployee_btn) {
+
 			home_form.setVisible(false);
 			addBook_form.setVisible(false);
 			addEmployee_form.setVisible(true);
@@ -2217,6 +2708,9 @@ public class AdminController implements Initializable {
 			category_btn.setStyle("-fx-background-color: transparent");
 			pos_btn.setStyle("-fx-background-color: linear-gradient(to bottom right, #4d2572, #3404a6)");
 
+			categoryDataMap = getCategoryData();
+			updateCategoryTabPane();
+
 		}
 
 	}
@@ -2276,6 +2770,17 @@ public class AdminController implements Initializable {
 		});
 
 		posQuantity.setText(Integer.toString(quantityBook));
+
+		originalCategoryDataMap = getCategoryData();
+		pos_search.setOnKeyTyped(event -> {
+			searchBooks(event);
+		});
+
+		// Book loan coupon
+		EmployeeData loggedInUser = UserController.getLoggedInUser();
+		if (loggedInUser != null) {
+			setCurrentUser(loggedInUser);
+		}
 
 	}
 
