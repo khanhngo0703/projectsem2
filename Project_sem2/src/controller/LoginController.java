@@ -87,7 +87,7 @@ public class LoginController implements Initializable {
 				EmployeeData loggedInUserData = new EmployeeData(rs.getInt("id"), rs.getString("fullname"),
 						rs.getString("username"), rs.getString("email"), rs.getString("phone_number"),
 						rs.getString("password_hash"), rs.getString("gender"), rs.getString("user_image"),
-						rs.getString("address"), rs.getDate("arrive_date"));
+						rs.getString("address"), rs.getDate("arrive_date"), rs.getInt("role"));
 
 				// Đặt thông tin người dùng đã đăng nhập
 				UserController.setLoggedInUser(loggedInUserData);

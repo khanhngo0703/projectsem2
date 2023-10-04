@@ -13,12 +13,13 @@ public class EmployeeData {
 	private String employeeImage;
 	private String address;
 	private Date arriveDate;
+	private int roleID;
 	
 	public EmployeeData() {
 		
 	}
 
-	public EmployeeData(int employeeID, String fullName, String userName, String email, String phoneNumber, String password, String gender, String employeeImage, String address, Date arriveDate) {
+	public EmployeeData(int employeeID, String fullName, String userName, String email, String phoneNumber, String password, String gender, String employeeImage, String address, Date arriveDate, int roleID) {
 		super();
 		this.employeeID = employeeID;
 		this.fullName = fullName;
@@ -30,6 +31,7 @@ public class EmployeeData {
 		this.employeeImage = employeeImage;
 		this.address = address;
 		this.arriveDate = arriveDate;
+		this.roleID = roleID;
 	}
 
 	public int getEmployeeID() {
@@ -110,6 +112,14 @@ public class EmployeeData {
 
 	public void setArriveDate(Date arriveDate) {
 		this.arriveDate = arriveDate;
+	}
+	
+	public int getRoleID() {
+		return roleID;
+	}
+
+	public void setRoleID(int roleID) {
+		this.roleID = roleID;
 	}
 	
 	@Override
