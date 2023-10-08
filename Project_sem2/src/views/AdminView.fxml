@@ -2,14 +2,12 @@
 
 <?import de.jensd.fx.glyphs.fontawesome.FontAwesomeIconView?>
 <?import java.lang.String?>
-<?import javafx.scene.chart.BarChart?>
-<?import javafx.scene.chart.CategoryAxis?>
-<?import javafx.scene.chart.NumberAxis?>
 <?import javafx.scene.control.Button?>
 <?import javafx.scene.control.ComboBox?>
 <?import javafx.scene.control.DatePicker?>
 <?import javafx.scene.control.Label?>
 <?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.Separator?>
 <?import javafx.scene.control.TabPane?>
 <?import javafx.scene.control.TableColumn?>
 <?import javafx.scene.control.TableView?>
@@ -210,11 +208,11 @@
 							<children>
 								<AnchorPane fx:id="statics_form" layoutX="84.0"
 									layoutY="126.0" prefHeight="554.6666666666666"
-									prefWidth="888.6666666666666" AnchorPane.bottomAnchor="0.0"
-									AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0"
-									AnchorPane.topAnchor="0.0">
+									prefWidth="888.6666666666666" visible="false"
+									AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0"
+									AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
 									<children>
-										<AnchorPane layoutX="13.0" layoutY="13.0"
+										<AnchorPane layoutX="14.0" layoutY="18.0"
 											prefHeight="527.0" prefWidth="862.0"
 											stylesheets="@../css/dashboard.css">
 											<styleClass>
@@ -222,14 +220,14 @@
 												<String fx:value="shadow" />
 											</styleClass>
 											<children>
-												<AnchorPane layoutY="-6.0" prefHeight="163.0"
+												<AnchorPane layoutY="-6.0" prefHeight="152.0"
 													prefWidth="862.0" stylesheets="@../css/dashboard.css">
 													<styleClass>
 														<String fx:value="white-bg" />
 														<String fx:value="shadow" />
 													</styleClass>
 													<children>
-														<AnchorPane layoutX="14.0" layoutY="14.0"
+														<AnchorPane layoutX="14.0" layoutY="7.0"
 															prefHeight="136.0" prefWidth="245.0"
 															stylesheets="@../css/dashboard.css">
 															<styleClass>
@@ -256,7 +254,7 @@
 																</Label>
 															</children>
 														</AnchorPane>
-														<AnchorPane layoutX="308.0" layoutY="14.0"
+														<AnchorPane layoutX="308.0" layoutY="7.0"
 															prefHeight="136.0" prefWidth="245.0"
 															stylesheets="@../css/dashboard.css">
 															<styleClass>
@@ -283,7 +281,7 @@
 																</Label>
 															</children>
 														</AnchorPane>
-														<AnchorPane layoutX="602.0" layoutY="14.0"
+														<AnchorPane layoutX="602.0" layoutY="7.0"
 															prefHeight="136.0" prefWidth="245.0"
 															stylesheets="@../css/dashboard.css">
 															<styleClass>
@@ -312,16 +310,84 @@
 														</AnchorPane>
 													</children>
 												</AnchorPane>
-												<BarChart fx:id="staticis_chart" layoutX="67.0"
-													layoutY="209.0" prefHeight="303.0" prefWidth="727.0"
-													title="Number of books">
-													<xAxis>
-														<CategoryAxis side="BOTTOM" />
-													</xAxis>
-													<yAxis>
-														<NumberAxis side="LEFT" />
-													</yAxis>
-												</BarChart>
+												<TableView fx:id="staticisBook_tableView"
+													layoutX="14.0" layoutY="189.0" prefHeight="215.0"
+													prefWidth="414.0">
+													<columns>
+														<TableColumn fx:id="staticisBook_col_ID"
+															prefWidth="38.00002670288086" text="ID" />
+														<TableColumn
+															fx:id="staticisBook_col_employeeName"
+															prefWidth="123.3333511352539" text="Nhân viên" />
+														<TableColumn
+															fx:id="staticisBook_col_customerName"
+															prefWidth="123.3333511352539" text="Khách hàng" />
+														<TableColumn
+															fx:id="staticisBook_col_quantityBook"
+															prefWidth="123.3333511352539" text="Tổng số lượng sách" />
+													</columns>
+												</TableView>
+												<Label alignment="CENTER" layoutX="98.0"
+													layoutY="158.0" text="THÔNG TIN PHIẾU MƯỢN">
+													<font>
+														<Font name="Arial Bold" size="20.0" />
+													</font>
+												</Label>
+												<Label alignment="CENTER" layoutX="29.0"
+													layoutY="426.0" text="Tổng số phiếu mượn: ">
+													<font>
+														<Font name="Arial Bold" size="16.0" />
+													</font>
+												</Label>
+												<Label alignment="CENTER" layoutX="29.0"
+													layoutY="458.0" text="Tổng số sách đã mượn: ">
+													<font>
+														<Font name="Arial Bold" size="16.0" />
+													</font>
+												</Label>
+												<TextField fx:id="staticis_totalBookLoanCoupon"
+													alignment="CENTER" layoutX="222.0" layoutY="424.0"
+													prefHeight="25.0" prefWidth="68.0" />
+												<TextField fx:id="staticis_totalQuantityBook"
+													alignment="CENTER" layoutX="222.0" layoutY="455.0"
+													prefHeight="25.0" prefWidth="67.0" />
+												<Button fx:id="staticis_viewDetailsBtn"
+													layoutX="332.0" layoutY="445.0" mnemonicParsing="false"
+													onAction="#viewBookLoanCoupon" prefHeight="25.0"
+													prefWidth="96.0" styleClass="add-btn"
+													stylesheets="@../css/dashboard.css" text="Xem chi tiết" />
+												<TableView fx:id="staticisBookDetails_tableView"
+													layoutX="466.0" layoutY="189.0" prefHeight="265.0"
+													prefWidth="381.0">
+													<columns>
+														<TableColumn
+															fx:id="staticisBookDetails_col_nameBook"
+															prefWidth="98.66671752929688" text="Tên sách" />
+														<TableColumn
+															fx:id="staticisBookDetails_col_quantityBook"
+															prefWidth="58.66668701171875" text="Số lượng" />
+														<TableColumn
+															fx:id="staticisBookDetails_col_borrowDate"
+															prefWidth="112.0" text="Ngày mượn" />
+														<TableColumn
+															fx:id="staticisBookDetails_col_dueDate"
+															prefWidth="107.333251953125" text="Hạn trả" />
+													</columns>
+												</TableView>
+												<Label alignment="CENTER" layoutX="546.0"
+													layoutY="158.0" text="CHI TIẾT PHIẾU MƯỢN">
+													<font>
+														<Font name="Arial Bold" size="20.0" />
+													</font>
+												</Label>
+												<Separator layoutX="444.0" layoutY="158.0"
+													orientation="VERTICAL" prefHeight="360.0" prefWidth="2.0" />
+												<Button fx:id="staticis_viewChartBtn" layoutX="514.0"
+													layoutY="482.0" mnemonicParsing="false"
+													onAction="#viewStaticis" prefHeight="25.0"
+													prefWidth="285.0" styleClass="add-btn"
+													stylesheets="@../css/dashboard.css"
+													text="Biểu đồ thống kê số lượng sách đã mượn " />
 											</children>
 										</AnchorPane>
 									</children>
@@ -1063,7 +1129,7 @@
 													layoutY="451.0" mnemonicParsing="false"
 													onAction="#viewBookCoupon" prefHeight="42.0"
 													prefWidth="134.0" styleClass="add-btn"
-													stylesheets="@../css/dashboard.css" text="Book loan coupon" />
+													stylesheets="@../css/dashboard.css" text="Book loan slip" />
 												<Label layoutX="176.0" layoutY="14.0"
 													text="Book Borrowing List">
 													<font>
@@ -1090,7 +1156,7 @@
 								</AnchorPane>
 								<AnchorPane fx:id="home_form" layoutX="10.0"
 									layoutY="10.0" prefHeight="554.6666666666666"
-									prefWidth="888.6666666666666" visible="false">
+									prefWidth="888.6666666666666">
 									<children>
 										<AnchorPane layoutX="9.0" layoutY="7.0"
 											prefHeight="527.0" prefWidth="862.0"

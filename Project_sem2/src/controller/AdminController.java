@@ -24,6 +24,8 @@ import data.AreaData;
 import data.BookData;
 import data.BorrowedBookData;
 import data.BorrowedBookDetailData;
+import data.BorrowedBookDetailDisplayData;
+import data.BorrowedBookDisplayData;
 import data.BorrowedBookInfo;
 import data.CategoryData;
 import data.CustomerData;
@@ -422,12 +424,51 @@ public class AdminController implements Initializable {
 
 	@FXML
 	private Button removeOrder_btn;
+	
+	@FXML
+    private TableColumn<BorrowedBookDetailDisplayData, String> staticisBookDetails_col_borrowDate;
+
+    @FXML
+    private TableColumn<BorrowedBookDetailDisplayData, String> staticisBookDetails_col_dueDate;
+
+    @FXML
+    private TableColumn<BorrowedBookDetailDisplayData, String> staticisBookDetails_col_nameBook;
+
+    @FXML
+    private TableColumn<BorrowedBookDetailDisplayData, Integer> staticisBookDetails_col_quantityBook;
+
+    @FXML
+    private TableView<BorrowedBookDetailDisplayData> staticisBookDetails_tableView;
+
+	@FXML
+	private TableColumn<BorrowedBookDisplayData, Integer> staticisBook_col_ID;
+
+	@FXML
+	private TableColumn<BorrowedBookDisplayData, String> staticisBook_col_customerName;
+
+	@FXML
+	private TableColumn<BorrowedBookDisplayData, String> staticisBook_col_employeeName;
+
+	@FXML
+	private TableColumn<BorrowedBookDisplayData, Integer> staticisBook_col_quantityBook;
+
+	@FXML
+	private TableView<BorrowedBookDisplayData> staticisBook_tableView;
 
 	@FXML
 	private Button staticis_btn;
 
 	@FXML
-	private BarChart<String, Number> staticis_chart;
+	private TextField staticis_totalBookLoanCoupon;
+
+	@FXML
+	private TextField staticis_totalQuantityBook;
+	
+	@FXML
+    private Button staticis_viewChartBtn;
+
+	@FXML
+	private Button staticis_viewDetailsBtn;
 
 	@FXML
 	private AnchorPane statics_form;
@@ -511,47 +552,147 @@ public class AdminController implements Initializable {
 			}
 
 			home_totalBook.setText(String.valueOf(totalBooksBorrowed));
+			staticis_totalQuantityBook.setText(String.valueOf(totalBooksBorrowed));
 
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		}
 	}
 	
-	public void staticisChart() {
-	    CategoryAxis xAxis = new CategoryAxis();
-	    NumberAxis yAxis = new NumberAxis();
+	public void staticsTotalBooksLoanCoupon() {
+		String sql = "SELECT COUNT(id) FROM borrowedbooks";
 
-	    BarChart<String, Number> staticis_chart = new BarChart<>(xAxis, yAxis);
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		connect = dbc.getConnection();
 
-	    xAxis.setLabel("Nhãn Trục X");
+		int totalBooksLoanCoupon = 0;
 
-	    staticis_chart.getData().clear();
+		try {
+			prepare = connect.prepareStatement(sql);
+			result = prepare.executeQuery();
 
-	    String sql = "SELECT arrive_date, COUNT(id) FROM users GROUP BY arrive_date ORDER BY TIMESTAMP(arrive_date) ASC LIMIT 2";
+			while (result.next()) {
+				totalBooksLoanCoupon = result.getInt("COUNT(id)");
+			}
+			
+			staticis_totalBookLoanCoupon.setText(String.valueOf(totalBooksLoanCoupon));
 
-	    DbConnection dbc = DbConnection.getDatabaseConnection();
-	    connect = dbc.getConnection();
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+	}
+	
+	public ObservableList<BorrowedBookDisplayData> staticsBookListData() {
 
-	    try {
-	        XYChart.Series<String, Number> chartSeries = new XYChart.Series<>();
-	        chartSeries.setName("Arrival Count");
+		ObservableList<BorrowedBookDisplayData> listData = FXCollections.observableArrayList();
+		String sql = "SELECT borrowedbooks.id, customer.fullname, users.fullname, borrowedbooks.total_quantity " +
+                "FROM borrowedbooks " +
+                "INNER JOIN customer ON borrowedbooks.customer_id = customer.id " +
+                "INNER JOIN users ON borrowedbooks.user_id = users.id";
 
-	        prepare = connect.prepareStatement(sql);
-	        result = prepare.executeQuery();
+		DbConnection dbc = DbConnection.getDatabaseConnection();
+		connect = dbc.getConnection();
 
-	        while (result.next()) {
-	            String arriveDate = result.getString(1);
-	            int count = result.getInt(2);
+		try {
+			prepare = connect.prepareStatement(sql);
+			result = prepare.executeQuery();
+			BorrowedBookDisplayData borrowedBookDisplayData;
 
-	            chartSeries.getData().add(new XYChart.Data<>(arriveDate, count));
+			while (result.next()) {
+				borrowedBookDisplayData = new BorrowedBookDisplayData(
+		                result.getInt("borrowedbooks.id"),
+		                result.getString("customer.fullname"),
+		                result.getString("users.fullname"),
+		                result.getInt("total_quantity")
+		            );
+				listData.add(borrowedBookDisplayData);
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		return listData;
+
+	}
+
+	private ObservableList<BorrowedBookDisplayData> staticsBookListData;
+
+	public void staticsBookShowListData() {
+		staticsBookListData = staticsBookListData();
+
+		staticisBook_col_ID.setCellValueFactory(new PropertyValueFactory<>("id"));
+	    staticisBook_col_customerName.setCellValueFactory(new PropertyValueFactory<>("customerName"));
+	    staticisBook_col_employeeName.setCellValueFactory(new PropertyValueFactory<>("employeeName"));
+	    staticisBook_col_quantityBook.setCellValueFactory(new PropertyValueFactory<>("totalQuantity"));
+
+	    staticisBook_tableView.setItems(staticsBookListData);
+
+	}
+	
+	public void updateStaticisBookTableView() {
+	    staticsBookListData.clear(); // Xóa dữ liệu hiện tại trong danh sách
+
+	    // Gọi hàm staticsBookListData() để lấy dữ liệu mới từ cơ sở dữ liệu
+	    ObservableList<BorrowedBookDisplayData> newData = staticsBookListData();
+
+	    // Thêm dữ liệu mới vào danh sách hiện tại
+	    staticsBookListData.addAll(newData);
+
+	    // Cập nhật TableView để hiển thị dữ liệu mới
+	    staticisBook_tableView.refresh();
+	}
+	
+	private ObservableList<BorrowedBookDetailDisplayData> borrowedBookDetailsList = FXCollections.observableArrayList();
+
+	@FXML
+	private void viewBookLoanCoupon(ActionEvent event) {
+	    BorrowedBookDisplayData selectedBorrowedBook = staticisBook_tableView.getSelectionModel().getSelectedItem();
+
+	    if (selectedBorrowedBook != null) {
+	        int borrowedBookId = selectedBorrowedBook.getId();
+
+	        // Sử dụng borrowedBookId để truy xuất dữ liệu chi tiết từ bảng borrowedbooksdetails trong cơ sở dữ liệu
+	        try {
+	            DbConnection dbc = DbConnection.getDatabaseConnection();
+	            Connection connect = dbc.getConnection();
+
+	            // Tạo truy vấn SQL để lấy dữ liệu chi tiết phiếu mượn
+	            String sql = "SELECT borrowedbooksdetails.*, books.book_name FROM borrowedbooksdetails INNER JOIN books ON borrowedbooksdetails.book_id = books.book_id WHERE borrow_id = ?";
+	            PreparedStatement preparedStatement = connect.prepareStatement(sql);
+	            preparedStatement.setInt(1, borrowedBookId);
+	            ResultSet resultSet = preparedStatement.executeQuery();
+	            
+	            staticisBookDetails_col_borrowDate.setCellValueFactory(new PropertyValueFactory<>("borrowDate"));
+	            staticisBookDetails_col_dueDate.setCellValueFactory(new PropertyValueFactory<>("dueDate"));
+	            staticisBookDetails_col_nameBook.setCellValueFactory(new PropertyValueFactory<>("bookName"));
+	            staticisBookDetails_col_quantityBook.setCellValueFactory(new PropertyValueFactory<>("quantity"));
+
+
+	            // Xử lý dữ liệu chi tiết phiếu mượn và đưa nó vào borrowedBookDetailsList
+	            borrowedBookDetailsList.clear(); // Xóa dữ liệu hiện tại
+	            while (resultSet.next()) {
+	                String borrowDate = resultSet.getString("borrow_date");
+	                String dueDate = resultSet.getString("due_date");
+	                String bookName = resultSet.getString("book_name");
+	                int quantity = resultSet.getInt("quantity");
+
+	                BorrowedBookDetailDisplayData detailData = new BorrowedBookDetailDisplayData(borrowDate, dueDate, bookName, quantity);
+	                borrowedBookDetailsList.add(detailData);
+	            }
+
+	            // Đặt items của TableView bằng borrowedBookDetailsList để hiển thị dữ liệu
+	            staticisBookDetails_tableView.setItems(borrowedBookDetailsList);
+	            staticisBookDetails_tableView.refresh(); // Làm mới giao diện
+	         
+	        } catch (SQLException ex) {
+	            ex.printStackTrace();
+	            // Hiển thị thông báo lỗi cho người dùng nếu có lỗi khi truy xuất cơ sở dữ liệu
 	        }
-
-	        staticis_chart.getData().addAll(chartSeries); // Sử dụng addAll để thêm dãy dữ liệu
-
-	    } catch (Exception ex) {
-	        ex.printStackTrace();
+	    } else {
+	        // Hiển thị thông báo cho người dùng nếu không có phiếu nào được chọn
+	        showAlert("Lỗi", "Không có phiếu nào được chọn", Alert.AlertType.ERROR);
 	    }
 	}
+
 
 //---------------------------------------------------------------------------------------------------------
 	// CRUD BOOKS
@@ -967,6 +1108,22 @@ public class AdminController implements Initializable {
 		}
 		return listData;
 	}
+	
+	@FXML
+	private void viewStaticis(ActionEvent event) throws IOException {
+	    // Tạo một mới màn hình (scene) cho StaticisChartView
+	    Parent root = FXMLLoader.load(getClass().getResource("/views/StaticisChartView.fxml"));
+	    Scene staticisScene = new Scene(root);
+
+	    // Lấy cửa sổ hiện tại
+	    Scene scene = staticis_viewChartBtn.getScene();
+	    Stage stage = (Stage) scene.getWindow();
+
+	    // Đặt màn hình mới cho cửa sổ hiện tại
+	    stage.setScene(staticisScene);
+	    stage.show();
+	}
+
 
 //---------------------------------------------------------------------------------------------
 	// CRUD EMPLOYEES
@@ -2452,6 +2609,24 @@ public class AdminController implements Initializable {
 			return;
 		}
 
+		// Kiểm tra xem customerName đã được nhập hay chưa
+		String customerNameValue = customerName.getText().trim(); // Lấy giá trị và loại bỏ khoảng trắng đầu và cuối
+																	// chuỗi
+
+		if (customerNameValue.isEmpty()) {
+			// Nếu customerName chưa được nhập
+			showAlert("Lỗi", "Vui lòng nhập tên khách hàng.", Alert.AlertType.ERROR);
+			return; // Không thực hiện xử lý tiếp theo
+		}
+		
+		borrowedBooksList.removeIf(borrowedBookInfo -> borrowedBookInfo.getQuantity() <= 0);
+
+	    if (borrowedBooksList.isEmpty()) {
+	        // Kiểm tra sau khi loại bỏ, nếu không còn sách nào trong borrowedBooksList
+	        showAlert("Lỗi", "Không có sách nào để mượn.", Alert.AlertType.ERROR);
+	        return;
+	    }
+
 		// Thực hiện việc thêm thông tin sách vào cơ sở dữ liệu borrowedbooks
 		int borrowId = addBooksToBorrowedBooks(currentUser, borrowedBooksList); // Lấy borrowId
 
@@ -2494,13 +2669,13 @@ public class AdminController implements Initializable {
 
 			LocalDate borrowDate = LocalDate.now(); // Ngày mượn
 			LocalDate dueDate = borrowDate.plusDays(7); // Ngày đến hạn
-			
+
 			int totalQuantity = 0; // Tính tổng quantity
 
-	        // Tính tổng quantity cho các đối tượng mượn sách
-	        for (BorrowedBookInfo borrowedBookInfo : selectedBooks) {
-	            totalQuantity += borrowedBookInfo.getQuantity();
-	        }
+			// Tính tổng quantity cho các đối tượng mượn sách
+			for (BorrowedBookInfo borrowedBookInfo : selectedBooks) {
+				totalQuantity += borrowedBookInfo.getQuantity();
+			}
 
 			prepare = connect.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
 			prepare.setInt(1, customerId);
@@ -2613,8 +2788,10 @@ public class AdminController implements Initializable {
 						// Cập nhật borrowBook_tableView
 						updateBorrowBookTableView();
 
-						// Cập nhật số lượng sách trong cơ sở dữ liệu (thực hiện sau)
-						updateBookQuantityInDatabase(bookId, selectedBook.getQuantity());
+						if (selectedBook.getQuantity() > 0) {
+	                        // Cập nhật số lượng sách trong cơ sở dữ liệu
+	                        updateBookQuantityInDatabase(bookId, selectedBook.getQuantity());
+	                    }
 
 						// Cập nhật số lượng sách trong categoryDataMap
 						updateCategoryDataMap(selectedBook.getCategoryName(), bookId, quantityToReturn);
@@ -2841,7 +3018,7 @@ public class AdminController implements Initializable {
 				couponInfo.append("                                         CẢM ƠN QUÝ KHÁCH!\n");
 
 				// Tạo tệp tin txt chứa thông tin phiếu mượn sách
-				try (PrintWriter writer = new PrintWriter("LoanCoupon.txt")) {
+				try (PrintWriter writer = new PrintWriter("LoanSlip.txt")) {
 					writer.println(couponInfo.toString());
 				} catch (FileNotFoundException e) {
 					e.printStackTrace();
@@ -3048,6 +3225,8 @@ public class AdminController implements Initializable {
 			staticsTotalEmployee();
 			staticsTotalCustomers();
 			staticsTotalBooksBorrowed();
+			staticsTotalBooksLoanCoupon();
+			updateStaticisBookTableView();
 		}
 	}
 
@@ -3127,8 +3306,9 @@ public class AdminController implements Initializable {
 		staticsTotalEmployee();
 		staticsTotalCustomers();
 		staticsTotalBooksBorrowed();
+		staticsTotalBooksLoanCoupon();
 		
-		staticisChart();
+		staticsBookShowListData();
 
 	}
 
